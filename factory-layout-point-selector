@@ -1,0 +1,68 @@
+import cv2
+import numpy as np
+
+img_path = r'*******************.png'（pngファイルを指定してください）
+img = cv2.imread(img_path)
+
+if img is None:
+    print("画像が見つかりません。パスを確認してください。")
+    exit()
+
+points = []
+labels = []
+
+# 拡大縮小のパラメータ
+scale = 1.0
+zoom_step = 0.1
+
+def refresh_display():
+    global img, scale, points, labels
+
+    # 画像をスケールに合わせてリサイズ
+    resized_img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
+    display_img = resized_img.copy()
+
+    # ポイントに丸とラベルを描画
+    for i, (px, py) in enumerate(points):
+        # 座標をスケールに合わせて調整
+        x = int(px * scale)
+        y = int(py * scale)
+        cv2.circle(display_img, (x, y), 5, (0, 0, 255), -1)
+        cv2.putText(display_img, labels[i], (x + 5, y - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+    cv2.imshow('クリックしてポイントを登録', display_img)
+
+def onclick(event, x, y, flags, param):
+    global points, labels, img, scale
+
+    if event == cv2.EVENT_LBUTTONDOWN:
+        # クリック位置を画像の座標に変換
+        orig_x = int(x / scale)
+        orig_y = int(y / scale)
+        label = input(f"ポイント({orig_x},{orig_y})のラベルを入力してください：")
+        points.append((orig_x, orig_y))
+        labels.append(label)
+        print(f"登録：{label} - ({orig_x},{orig_y})")
+        refresh_display()
+
+    elif event == cv2.EVENT_MOUSEWHEEL:
+        # ホイールの回転でズーム調整
+        if flags > 0:  # ホイール前方回転
+            scale += zoom_step
+        else:  # ホイール後方回転
+            scale = max(zoom_step, scale - zoom_step)
+        refresh_display()
+
+cv2.namedWindow('クリックしてポイントを登録')
+cv2.setMouseCallback('クリックしてポイントを登録', onclick)
+
+# 初回表示
+refresh_display()
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+print("記録したポイントとラベル：")
+for lbl, pt in zip(labels, points):
+    print(f"{lbl}: {pt}")
+
